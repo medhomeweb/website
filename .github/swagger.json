@@ -1,0 +1,4568 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Cloudron API",
+    "version": "1.0.0",
+    "x-logo": {
+      "url": "/img/cloudron-banner.png"
+    },
+    "description": "Cloudron provides a RESTful API to manage all aspects of the Cloudron like adding users, configuring groups and installing apps. <br/> <br/> If you are an app developer, the [Cloudron CLI tool](https://www.npmjs.com/package/cloudron) implements a workflow that allows you to develop apps on your Cloudron. The CLI tool uses the REST API documented here. <br/> <br/> The access token can be provided via the request query `?access_token=<token>` or the token can be provided via the Authorization header using `Bearer <token>`."
+  },
+  "tags": [
+    {
+      "name": "Cloudron"
+    },
+    {
+      "name": "Appstore"
+    },
+    {
+      "name": "App Passwords"
+    },
+    {
+      "name": "Apps"
+    },
+    {
+      "name": "Backups"
+    },
+    {
+      "name": "Branding"
+    },
+    {
+      "name": "Domains",
+      "description": "Add and manage domains."
+    },
+    {
+      "name": "Groups"
+    },
+    {
+      "name": "Mail"
+    },
+    {
+      "name": "Mailserver"
+    },
+    {
+      "name": "Network"
+    },
+    {
+      "name": "Notifications"
+    },
+    {
+      "name": "Profile"
+    },
+    {
+      "name": "Services"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Tasks"
+    },
+    {
+      "name": "Tokens"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "Volumes"
+    }
+  ],
+  "paths": {
+    "/cloudron/setup": {
+      "post": {
+        "summary": "Initial DNS Setup",
+        "description": "Public route and very first call to setup the dashboard domain.\n<br/><br/>\n<b>This call has to be made against the raw IP address (eg. https://1.2.3.4 ) accepting self-signed certificates.</b>\n<br/><br/>\nA curl example could look like:<br/>\n```curl -k -X POST -H 'Content-Type: application/json' --data '{...}' http://1.2.3.4/api/v1/cloudron/setup```\n<br/><br/>\nOnce called, the process can be tracked through the `setup` object in the `/api/v1/cloudron/status` API reply.\nAfter the status API returns a success, future API requests must be made to `https://my.domain.com`.\n<br/><br/>\nThis routes gets disabled once the Cloudron has been activated.\n",
+        "tags": [
+          "Cloudron"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dnsConfig"
+                ],
+                "properties": {
+                  "dnsConfig": {
+                    "type": "object",
+                    "required": [
+                      "provider",
+                      "domain",
+                      "config"
+                    ],
+                    "properties": {
+                      "provider": {
+                        "$ref": "#/components/schemas/DnsProvider"
+                      },
+                      "domain": {
+                        "type": "string",
+                        "example": "hello.example.com"
+                      },
+                      "zoneName": {
+                        "type": "string",
+                        "example": "example.com"
+                      },
+                      "config": {
+                        "type": "object",
+                        "description": "DNS provider specific configuration, for example API tokens and secrets",
+                        "example": {
+                          "token": "digitalocean_api_token"
+                        }
+                      },
+                      "tlsConfig": {
+                        "$ref": "#/components/schemas/TlsConfig"
+                      },
+                      "sysinfoConfig": {
+                        "$ref": "#/components/schemas/SysConfig"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloudron/status": {
+      "get": {
+        "summary": "Get status",
+        "description": "Public route to get status information for this Cloudron.",
+        "tags": [
+          "Cloudron"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string",
+                      "description": "Cloudron version",
+                      "example": "5.1.0"
+                    },
+                    "apiServerOrigin": {
+                      "type": "string",
+                      "description": "The API endpoint to make App Store requests",
+                      "example": "https://api.cloudron.io"
+                    },
+                    "webServerOrigin": {
+                      "type": "string",
+                      "description": "The Web endpoint for App Store assets (docs, images, etc)",
+                      "example": "https://cloudron.io"
+                    },
+                    "provider": {
+                      "$ref": "#/components/schemas/Provider"
+                    },
+                    "cloudronName": {
+                      "type": "string",
+                      "description": "Name of the Cloudron used in the login screen, nav bar",
+                      "example": "My Space"
+                    },
+                    "footer": {
+                      "type": "string",
+                      "description": "Markdown formatted footer content",
+                      "example": "&copy; 2020  &nbsp;  [Cloudron](https://cloudron.io) &nbsp; &nbsp; &nbsp;  [Forum <i class=\"fa fa-comments\"></i>](https://forum.cloudron.io)"
+                    },
+                    "adminFqdn": {
+                      "type": "string",
+                      "description": "The FQDN of the Cloudron dashboard",
+                      "example": "my.example.com"
+                    },
+                    "activated": {
+                      "type": "boolean",
+                      "description": "Indicates if this Cloudron was already activated. This is true once the first user was created during setup.",
+                      "example": true
+                    },
+                    "setup": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean",
+                          "description": "Indicates if a DNS setup is currently in progress. This happens after /api/v1/cloudron/setup was issued.",
+                          "example": false
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Setup process status messages for ongoing progress display",
+                          "example": "Fetching SSL certificate ..."
+                        },
+                        "errorMessage": {
+                          "type": "string",
+                          "example": null,
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "restore": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean",
+                          "description": "Indicates if a restore is currently in progress.",
+                          "example": false
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Restore process status messages for ongoing progress display",
+                          "example": "Downloading backups ..."
+                        },
+                        "errorMessage": {
+                          "type": "string",
+                          "example": null,
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloudron/activate": {
+      "post": {
+        "summary": "Activate",
+        "description": "Public route to activate the Cloudron. This creates the first user (aka owner) account. <br/><br/> Before installing apps, the Cloudron must be registered with a valid Appstore account as well using the 'Register Cloudron' route.",
+        "tags": [
+          "Cloudron"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password",
+                  "email"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "Username. The first user is also called the Owner.",
+                    "example": "oksana"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Password. Minimum of 8 characters required.",
+                    "example": "strongPa55word!?"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Primary email of the user.",
+                    "example": "oksane@example.com"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Full name of the user.",
+                    "example": "Oksana Muller"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "description": "Unique ID of the created user",
+                      "example": "uid-e08ca116-d3e5-43c9-b43f-6eb990be58ea"
+                    },
+                    "token": {
+                      "type": "string",
+                      "description": "A token that will authenticate the user for future API requests. Pass this as `?access_token=<token>`.",
+                      "example": "sometoken"
+                    },
+                    "expires": {
+                      "type": "string",
+                      "description": "Expiry time of token",
+                      "format": "date-time",
+                      "example": "ISO-8601 UTC date"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloudron/restore": {
+      "post": {
+        "summary": "Restore",
+        "description": "Public route to restore a whole Cloudron from backup. This is only available until the Cloudron is activated.",
+        "tags": [
+          "Cloudron"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "backupConfig",
+                  "backupId",
+                  "version"
+                ],
+                "properties": {
+                  "backupConfig": {
+                    "$ref": "#/components/schemas/BackupConfig"
+                  },
+                  "backupId": {
+                    "type": "string",
+                    "example": "2020-04-20-161041-646/box_2020-04-20-161045-600_v5.2.0"
+                  },
+                  "version": {
+                    "type": "string",
+                    "example": "5.1.0"
+                  },
+                  "sysinfoConfig": {
+                    "$ref": "#/components/schemas/SysinfoConfig"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloudron/login": {
+      "post": {
+        "summary": "API Login",
+        "description": "Login to the Cloudron API to obtain an access token",
+        "tags": [
+          "Cloudron"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "julia"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "supersecret"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "example": "sometoken"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "ISO-8601 UTC date"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloudron/renew_certs": {
+      "post": {
+        "summary": "Renew SSL certificates",
+        "description": "Renew SSL certificates of all or optionally provided domains",
+        "tags": [
+          "Cloudron"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "example": "example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track restart process via the task API",
+                      "example": "1234"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config": {
+      "get": {
+        "summary": "Get Config",
+        "description": "This config object contains the platform configuration.",
+        "tags": [
+          "Cloudron"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apiServerOrigin": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://api.cloudron.io"
+                    },
+                    "webServerOrigin": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://cloudron.io"
+                    },
+                    "adminDomain": {
+                      "type": "string",
+                      "description": "The main domain for this Cloudron. `adminFqdn` and `mailFqdn` depend on this",
+                      "example": "example.com"
+                    },
+                    "adminFqdn": {
+                      "type": "string",
+                      "description": "Subdomain where the dashboard is reachable.",
+                      "example": "my.example.com"
+                    },
+                    "mailFqdn": {
+                      "type": "string",
+                      "description": "Subdomain where the mail server is reachable.",
+                      "example": "my.example.com"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "Cloudron version",
+                      "example": "4.1.2"
+                    },
+                    "isDemo": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "provider": {
+                      "$ref": "#/components/schemas/Provider"
+                    },
+                    "cloudronName": {
+                      "type": "string",
+                      "description": "Same as /api/v1/settings/clouron_name",
+                      "example": "My Cloudron"
+                    },
+                    "uiSpec": {
+                      "type": "object",
+                      "description": "See https://docs.cloudron.io/hosting-provider/#customization"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appstore/register_cloudron": {
+      "post": {
+        "summary": "Register Cloudron",
+        "description": "Register this Cloudron with cloudron.io AppStore and enable access to the app library.",
+        "tags": [
+          "Appstore"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "signup",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "signup": {
+                    "type": "boolean",
+                    "description": "If `true` a new cloudron.io account will be created. If an account already exists, this request will return an error. Otherwise, this Cloudron will be assigned to the existing account.",
+                    "example": false
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "julia@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "supersecret"
+                  },
+                  "totpToken": {
+                    "type": "string",
+                    "description": "2FA token. Required when the cloudron.io account already exists and was setup with 2FA."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/appstore/subscription": {
+      "get": {
+        "summary": "Get Subscription",
+        "tags": [
+          "Appstore"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "example": "julia@example.com"
+                    },
+                    "cloudronId": {
+                      "type": "string"
+                    },
+                    "cloudronCreatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "ISO-8601 UTC date"
+                    },
+                    "plan": {
+                      "type": "string"
+                    },
+                    "current_period_end": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "ISO-8601 UTC date"
+                    },
+                    "canceled_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "ISO-8601 UTC date"
+                    },
+                    "cancel_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "ISO-8601 UTC date"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "features": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains": {
+      "get": {
+        "summary": "List Domains",
+        "description": "Get all domains",
+        "tags": [
+          "Domains"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "domains": {
+                      "type": "array",
+                      "example": [],
+                      "items": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add Domain",
+        "description": "Add a new domain",
+        "tags": [
+          "Domains"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "domain"
+                    ],
+                    "properties": {
+                      "domain": {
+                        "type": "string",
+                        "example": "example.com"
+                      }
+                    }
+                  },
+                  {
+                    "$ref": "#/components/schemas/DomainConfig"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid fields or provider credentials"
+          },
+          "409": {
+            "description": "Conflict. Domain already exists."
+          }
+        }
+      }
+    },
+    "/domains/{domain}": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "domain",
+          "description": "Domain",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get Domain",
+        "tags": [
+          "Domains"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "domain": {
+                      "type": "string",
+                      "example": "cloud.example.com"
+                    },
+                    "zoneName": {
+                      "type": "string",
+                      "example": "example.com"
+                    },
+                    "provider": {
+                      "type": "string",
+                      "example": "cloudflare"
+                    },
+                    "config": {
+                      "type": "object",
+                      "properties": {
+                        "hyphenatedSubdomains": {
+                          "type": "boolean",
+                          "example": false
+                        }
+                      }
+                    },
+                    "tlsConfig": {
+                      "type": "object",
+                      "properties": {
+                        "provider": {
+                          "type": "string",
+                          "example": "letsencrypt-prod"
+                        },
+                        "wildcard": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    },
+                    "fallbackCertificate": {
+                      "type": "object",
+                      "properties": {
+                        "cert": {
+                          "type": "string",
+                          "example": ""
+                        },
+                        "key": {
+                          "type": "string",
+                          "example": ""
+                        }
+                      }
+                    },
+                    "locked": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Domain",
+        "tags": [
+          "Domains"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DomainConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid fields or provider credentials"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove Domain",
+        "tags": [
+          "Domains"
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "409": {
+            "description": "Conflict. The domain is still in use"
+          }
+        }
+      }
+    },
+    "/domains/{domain}/dns_check": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "domain",
+          "description": "Domain",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "subdomain",
+          "description": "The subdomain to check the DNS record for",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Check DNS Records",
+        "tags": [
+          "Domains"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "needsOverwrite": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/dynamic_dns": {
+      "get": {
+        "summary": "Get Dynamic DNS State",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Dynamic DNS State",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/DynamicDnsConfig"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/apps/install": {
+      "post": {
+        "summary": "Install app",
+        "description": "This triggers an app installation. Use the `taskId` from the response with the Tasks API to follow the installation progress <br/> <br/> **Either `manifest` or `appStoreId` are required!** In most cases the `appStoreId` is the correct property to be used for installing apps from the Cloudron app catalogue.",
+        "tags": [
+          "Apps"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "location",
+                  "domain",
+                  "accessRestriction"
+                ],
+                "properties": {
+                  "manifest": {
+                    "$ref": "#/components/schemas/AppManifest"
+                  },
+                  "appStoreId": {
+                    "type": "string",
+                    "example": "org.wordpress.cloudronapp"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "Subdomain the app is installed at. This may be an empty string if the app is installed directly at `domain`",
+                    "example": "www"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "example": "example.com"
+                  },
+                  "accessRestriction": {
+                    "type": "object",
+                    "description": "By default all users have access",
+                    "default": {},
+                    "example": {}
+                  },
+                  "portBindings": {
+                    "type": "object",
+                    "default": {}
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string",
+                    "default": "",
+                    "example": "MyAwesomeWebsite"
+                  },
+                  "memoryLimit": {
+                    "type": "number",
+                    "format": "int32",
+                    "default": "Value from the AppManifest",
+                    "description": "Memory limit as a number of `MB * 1024 * 1024`. So 600MB memory limit is 629145600",
+                    "example": 629145600
+                  },
+                  "sso": {
+                    "type": "boolean",
+                    "description": "For apps with `optionalSso` set in the manifest.",
+                    "default": true,
+                    "example": true
+                  },
+                  "enableBackup": {
+                    "type": "boolean",
+                    "default": true,
+                    "example": true
+                  },
+                  "enableAutomaticUpdate": {
+                    "type": "boolean",
+                    "default": true,
+                    "example": true
+                  },
+                  "alternateDomains": {
+                    "type": "array",
+                    "default": [],
+                    "items": {}
+                  },
+                  "overwriteDns": {
+                    "type": "boolean",
+                    "description": "If set to `true` Cloudron will overwrite any existing DNS records. This should not be required in most cases.",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "2b97b864-37b6-4e79-88b0-63712186a326"
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "example": "1234"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps": {
+      "get": {
+        "summary": "List installed apps",
+        "tags": [
+          "Apps"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apps": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/App"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}": {
+      "get": {
+        "summary": "Get installed app",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/App"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/restart": {
+      "post": {
+        "summary": "Restart app",
+        "description": "Restart an installed app",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track restart process via the task API"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/start": {
+      "post": {
+        "summary": "Start app",
+        "description": "Start a stopped app",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track start process via the task API"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/configure/location": {
+      "post": {
+        "summary": "Location settings",
+        "description": "Configure the domain, subdomain, alias of an app",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "overwriteDns",
+                  "location",
+                  "domain"
+                ],
+                "properties": {
+                  "overwriteDns": {
+                    "type": "boolean",
+                    "description": "to overwrite the dns",
+                    "example": false
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "the main location/subdomain of the app",
+                    "example": "stage"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "description": "the main domain",
+                    "example": "cloudron.dev"
+                  },
+                  "portBindings": {
+                    "type": "object",
+                    "description": "array of port bindings",
+                    "default": {},
+                    "example": {
+                      "EXAMPLE_PORT": 25565
+                    }
+                  },
+                  "alternateDomains": {
+                    "type": "array",
+                    "description": "list of alternate domains redirecting to the main location - uncapitalized chars only",
+                    "default": [],
+                    "example": [
+                      {
+                        "subdomain": "example-not-default-only-uncapitalized-chars",
+                        "domain": "cloudron.dev"
+                      }
+                    ],
+                    "items": {}
+                  },
+                  "aliasDomains": {
+                    "type": "array",
+                    "description": "list of alias domains - uncapitalized chars only",
+                    "default": [],
+                    "example": [
+                      {
+                        "subdomain": "example-not-default-only-uncapitalized-chars",
+                        "domain": "cloudron.dev"
+                      }
+                    ],
+                    "items": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track stop process via the task API"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/configure/memory_limit": {
+      "post": {
+        "summary": "Set the memory limit",
+        "description": "Increase or the decrease the allocated memory limit",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "memoryLimit"
+                ],
+                "properties": {
+                  "memoryLimit": {
+                    "type": "number",
+                    "description": "the memory limit in bytes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track start process via the task API"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/stop": {
+      "post": {
+        "summary": "Stop app",
+        "description": "Stop a running app",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track stop process via the task API"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/clone": {
+      "post": {
+        "summary": "Clone app",
+        "description": "Clone app identified by appid from a backup to a new instance with the same version and data",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "location",
+                  "domain",
+                  "backupId"
+                ],
+                "properties": {
+                  "backupId": {
+                    "type": "string",
+                    "description": "BackupID of the backup the clone should be based off"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "subdomain"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "description": "domain"
+                  },
+                  "portBindings": {
+                    "description": "If an app uses other TCP/UDP ports, new port bindings have to be specified to avoid conflict",
+                    "type": "object",
+                    "default": {}
+                  },
+                  "overwriteDns": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "skipDnsSetup": {
+                    "description": "skipping DNS setup allows dry-runs for backup/restore testing",
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "appId of the newly created clone instance"
+                    },
+                    "taskId": {
+                      "type": "string",
+                      "description": "taskId to track clone process via the task API"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/logs": {
+      "get": {
+        "summary": "Get App Logs",
+        "description": "For format `plain` simple text lines are returned. When format is `json` each log line looks like `{ realtimeTimestamp: timestamp, message: message, source: appId }`",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lines",
+            "schema": {
+              "type": "string",
+              "default": 10
+            },
+            "description": "Number of log lines to fetch. Starting at latest."
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "json"
+              ],
+              "default": "json"
+            },
+            "description": "Log type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-logs": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apps/{appid}/logstream": {
+      "get": {
+        "summary": "Get App Logstream",
+        "description": "A logstream is of type [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource). For format `plain` simple text lines are returned. When format is `json` each log line looks like `{ realtimeTimestamp: timestamp, message: message, source: appId }`",
+        "tags": [
+          "Apps"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appid",
+            "description": "Installed App ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lines",
+            "schema": {
+              "type": "string",
+              "default": 10
+            },
+            "description": "Number of log lines to fetch. Starting at latest."
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "json"
+              ],
+              "default": "json"
+            },
+            "description": "Log type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/unstable_apps": {
+      "get": {
+        "summary": "Get Unstable Apps State",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Unstable Apps State",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/DynamicDnsConfig"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/backup_config": {
+      "get": {
+        "summary": "Get Backup Config",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Backup Config",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/platform_config": {
+      "get": {
+        "summary": "Get Platform Config",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Platform Config",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/external_ldap_config": {
+      "get": {
+        "summary": "Get External LDAP Config",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalLdapConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set External LDAP Config",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalLdapConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid field"
+          }
+        }
+      }
+    },
+    "/settings/registry_config": {
+      "get": {
+        "summary": "Get Registry Config",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Registry Config",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistryConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid field"
+          }
+        }
+      }
+    },
+    "/settings/sysinfo_config": {
+      "get": {
+        "summary": "Get Sysinfo Config",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SysinfoConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Sysinfo Config",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysinfoConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid field"
+          }
+        }
+      }
+    },
+    "/settings/app_autoupdate_pattern": {
+      "get": {
+        "summary": "Get Apps Autoupdate Pattern",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePattern"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Apps Autoupdate Pattern",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UpdatePattern"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/box_autoupdate_pattern": {
+      "get": {
+        "summary": "Get Cloudron Autoupdate Pattern",
+        "description": "Gets the pattern that the Cloudron uses to automatically update itself and installed apps. Patterns are matched based on the Cloudron's timezone.",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePattern"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Cloudron Autoupdate Pattern",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UpdatePattern"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/time_zone": {
+      "get": {
+        "summary": "Get Timezone",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimezoneConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Timezone",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimezoneConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/cloudron_name": {
+      "get": {
+        "summary": "Get Cloudron Name",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudronNameConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Cloudron Name",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudronNameConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/settings/cloudron_avatar": {
+      "get": {
+        "summary": "Get Cloudron Avatar",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Cloudron Avatar",
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "avatar"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/backups": {
+      "get": {
+        "summary": "List Backups",
+        "tags": [
+          "Backups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PaginationPage"
+          },
+          {
+            "$ref": "#/components/parameters/PaginationPerPage"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "creationTime": {
+                            "type": "number",
+                            "format": "date-time"
+                          },
+                          "version": {
+                            "type": "string",
+                            "description": "Cloudron version that backups was made for",
+                            "example": "4.2.1"
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Is always `box` since this API returns the list of platform backups. Individual app backups can be retrieved with the /api/v1/apps/ routes."
+                          },
+                          "dependsOn": {
+                            "type": "array",
+                            "description": "Contains a list of backup IDs referencing the app backups",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "normal",
+                              "creating",
+                              "error"
+                            ]
+                          },
+                          "manifest": {
+                            "type": "object",
+                            "example": null,
+                            "description": "Is always `null` since this API returns the list of platform backups. Individual app backups can be retrieved with the /api/v1/apps/ routes."
+                          },
+                          "format": {
+                            "$ref": "#/components/schemas/BackupFormat"
+                          },
+                          "preserveSecs": {
+                            "type": "integer",
+                            "description": "Time to keep this backup in seconds (1 week is 604800 seconds). This number + `creationTime` determines if a backup is kept or removed",
+                            "example": 604800
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/backups/create": {
+      "post": {
+        "summary": "Trigger new Backup",
+        "description": "This will trigger a new backup for the whole system, including all apps.",
+        "tags": [
+          "Backups"
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "integer",
+                      "description": "This id can be used with the /api/v1/tasks routes to determine state and get logs",
+                      "example": 123
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/backups/cleanup": {
+      "post": {
+        "summary": "Cleanup old Backups",
+        "description": "Based on the backup creation and `retentionSecs` specified in the backup config, backups will be purged. This should not need to be called manually as the same logic is called automatically very 6 hours.",
+        "tags": [
+          "Backups"
+        ],
+        "responses": {
+          "202": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "integer",
+                      "description": "This id can be used with the /api/v1/tasks routes to determine state and get logs",
+                      "example": 123
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "summary": "List Tasks",
+        "tags": [
+          "Tasks"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PaginationPage"
+          },
+          {
+            "$ref": "#/components/parameters/PaginationPerPage"
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "app",
+                "backup",
+                "update",
+                "renewcerts",
+                "prepareDashboardDomain",
+                "cleanBackups",
+                "syncExternalLdap"
+              ],
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Task"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{taskId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
+      "get": {
+        "summary": "Get Task",
+        "tags": [
+          "Tasks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{taskId}/logs": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
+      "get": {
+        "summary": "Get Task Logs",
+        "tags": [
+          "Tasks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-logs": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{taskId}/logstream": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
+      "get": {
+        "summary": "Get Task Logstream",
+        "description": "The log stream is in [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) format",
+        "tags": [
+          "Tasks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/tasks/{taskId}/stop": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
+      "post": {
+        "summary": "Stop Task",
+        "tags": [
+          "Tasks"
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/services": {
+      "get": {
+        "summary": "Get Services",
+        "tags": [
+          "Services"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "example": "mysql",
+                        "enum": [
+                          "mail",
+                          "mongodb",
+                          "mysql",
+                          "postgresql",
+                          "docker",
+                          "unbound",
+                          "sftp",
+                          "graphite",
+                          "nginx"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{service}": {
+      "get": {
+        "summary": "Get Service",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Configure Service",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "memory": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/services/{service}/logs": {
+      "get": {
+        "summary": "Get Service Logs",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-logs": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{service}/logstream": {
+      "get": {
+        "summary": "Get Service Logstream",
+        "description": "The log stream is in [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) format",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/services/{service}/restart": {
+      "post": {
+        "summary": "Restart Service",
+        "tags": [
+          "Services"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceName"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "List Users",
+        "description": "Get all users",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PaginationPage"
+          },
+          {
+            "$ref": "#/components/parameters/PaginationPerPage"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "example": [],
+                      "items": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add User",
+        "description": "Add new User",
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "username": {
+                    "type": "string",
+                    "description": "If not specified, the new user will have to set it during onboarding"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "If not specified, the new user will have to set it during onboarding"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "If not specified, the new user will have to set it during onboarding"
+                  },
+                  "admin": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "summary": "Get User",
+        "description": "Get user",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update User",
+        "description": "Update user",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "fallbackEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "username": {
+                    "type": "string",
+                    "description": "If not specified, the new user will have to set it during onboarding"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "If not specified, the new user will have to set it during onboarding"
+                  },
+                  "admin": {
+                    "type": "boolean"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete User",
+        "description": "Delete user",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users/{userId}/password": {
+      "post": {
+        "summary": "Change Password",
+        "description": "Change Password",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users/{userId}/groups": {
+      "put": {
+        "summary": "Set Groups",
+        "description": "Set groups a user belongs to",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "groupIds"
+                ],
+                "properties": {
+                  "groupIds": {
+                    "type": "array",
+                    "example": [],
+                    "items": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users/{userId}/send_invite_email": {
+      "post": {
+        "summary": "Send Invite",
+        "description": "Send user invite email. This will not reset the invite token. See the create invite route.",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "email",
+                    "example": "user@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users/{userId}/invite_link": {
+      "get": {
+        "summary": "Get Invite Link",
+        "description": "Get an invite link. This will create a new one, if the previous is expired. This only works for local users, not LDAP/ActiveDirectory users.",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inviteLink": {
+                      "type": "url"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups": {
+      "get": {
+        "summary": "List Groups",
+        "description": "List groups",
+        "tags": [
+          "Groups"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Group"
+                      },
+                      "example": [
+                        {
+                          "id": "gid-e08ca116-d3e5-43c9-b43f-6eb990be58ea",
+                          "name": "Manager"
+                        },
+                        {
+                          "id": "gid-351904ce-6a21-4fbc-806e-4f457b120ef3",
+                          "name": "Employee"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add Group",
+        "description": "Add group",
+        "tags": [
+          "Groups"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/Group"
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}": {
+      "get": {
+        "summary": "Get Group",
+        "description": "Get group",
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GroupId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupWithMembers"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update Group",
+        "description": "Update group",
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GroupId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/Group"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Group",
+        "description": "Delete group",
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GroupId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/members": {
+      "put": {
+        "summary": "Set Group Members",
+        "description": "Set group members",
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/GroupId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userIds"
+                ],
+                "properties": {
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/UserId"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}": {
+      "get": {
+        "summary": "Get Mail Domain Info",
+        "description": "Get Mail Domain Info",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Domain"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mail/{domain}/status": {
+      "get": {
+        "summary": "Get Mail Domain Status",
+        "description": "Get Mail Domain Status",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dns": {
+                      "type": "object",
+                      "properties": {
+                        "mx": {
+                          "type": "object",
+                          "properties": {
+                            "domain": {
+                              "type": "string",
+                              "example": "example.com"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "@"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "MX"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "10 my.example.com."
+                            },
+                            "expected": {
+                              "type": "string",
+                              "example": "10 my.example.com."
+                            },
+                            "status": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        },
+                        "spf": {
+                          "type": "object",
+                          "properties": {
+                            "domain": {
+                              "type": "string",
+                              "example": "example.com"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "@"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "TXT"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "v=spf1 a:my.example.com ~all"
+                            },
+                            "expected": {
+                              "type": "string",
+                              "example": "v=spf1 a:my.example.com ~all"
+                            },
+                            "status": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        },
+                        "dmarc": {
+                          "type": "object",
+                          "properties": {
+                            "domain": {
+                              "type": "string",
+                              "example": "_dmarc.nebulon.space"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "_dmarc"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "TXT"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "v=DMARC1; p=reject; pct=100"
+                            },
+                            "expected": {
+                              "type": "string",
+                              "example": "v=DMARC1; p=reject; pct=100"
+                            },
+                            "status": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        },
+                        "dkim": {
+                          "type": "object",
+                          "properties": {
+                            "domain": {
+                              "type": "string",
+                              "example": "cloudron._domainkey.example.com"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "cloudron._domainkey"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "TXT"
+                            },
+                            "expected": {
+                              "type": "string",
+                              "example": "v=DKIM1; t=s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDBooiGgy1csAPyIf2bfpSrhbVu8l086BXynoCPLlznxpa1HzhYJhv/Y72/3ce88WsSUs7NmtfAYSMc59BrC+ad3ibHTFj3Z5I6YwWsKymxQsoD2hd71IMkmHe9I9zV+r2NTiBwTFSfli8+GUUTMSwCl/vb4o53DRVkCxXBlxNGvQIDAQAB"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "v=DKIM1; t=s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDBooiGgy1csAPyIf2bfpSrhbVu8l086BXynoCPLlznxpa1HzhYJhv/Y72/3ce88WsSUs7NmtfAYSMc59BrC+ad3ibHTFj3Z5I6YwWsKymxQsoD2hd71IMkmHe9I9zV+r2NTiBwTFSfli8+GUUTMSwCl/vb4o53DRVkCxXBlxNGvQIDAQAB"
+                            },
+                            "status": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        },
+                        "ptr": {
+                          "type": "object",
+                          "properties": {
+                            "domain": {
+                              "type": "string",
+                              "example": "59.133.179.95.in-addr.arpa"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "95.179.133.59"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "PTR"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "my.example.com"
+                            },
+                            "expected": {
+                              "type": "string",
+                              "example": "my.example.com"
+                            },
+                            "status": {
+                              "type": "boolean",
+                              "example": true
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "rbl": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "ip": {
+                          "type": "string",
+                          "example": "1.2.3.4"
+                        },
+                        "servers": {
+                          "type": "array",
+                          "example": [],
+                          "items": {}
+                        }
+                      }
+                    },
+                    "relay": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "string",
+                          "example": "OK"
+                        },
+                        "status": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mail/{domain}/enable": {
+      "post": {
+        "summary": "Enable Incoming Email",
+        "description": "Enable incoming email for the domain to receive emails. By default, only email sending is enabled.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/EnableMailboxes"
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/mail_from_validation": {
+      "post": {
+        "summary": "Set Mail From Validation",
+        "description": "Set Mail From Validation",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/EnableMailboxes"
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/catch_all": {
+      "post": {
+        "summary": "Set Catchall",
+        "description": "Set Catchall addresses",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "addresses"
+                ],
+                "properties": {
+                  "addresses": {
+                    "type": "array",
+                    "example": [
+                      "mailbox@example.com"
+                    ],
+                    "items": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/relay": {
+      "post": {
+        "summary": "Set SMTP Relay",
+        "description": "Configure a SMTP relay for this domain",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "provider"
+                ],
+                "properties": {
+                  "provider": {
+                    "$ref": "#/components/schemas/MailRelayProvider"
+                  },
+                  "host": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "number"
+                  },
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "acceptSelfSignedCerts": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/banner": {
+      "post": {
+        "summary": "Set Mail Signature",
+        "description": "Set Mail Signature",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "html": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/send_test_mail": {
+      "post": {
+        "summary": "Test Mail",
+        "description": "Sent a test mail from domain.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "to"
+                ],
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "example": "hello@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/mailbox_count": {
+      "get": {
+        "summary": "Get Mailbox Count",
+        "description": "Get mailbox count.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mail/{domain}/mailboxes": {
+      "get": {
+        "summary": "List Mailboxes",
+        "description": "List mailboxes for this domain.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          },
+          {
+            "$ref": "#/components/parameters/PaginationPage"
+          },
+          {
+            "$ref": "#/components/parameters/PaginationPerPage"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mailboxes": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Mailbox"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add Mailbox",
+        "description": "Add mailbox.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "ownerId",
+                  "ownerType"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "webmaster"
+                  },
+                  "ownerId": {
+                    "type": "string",
+                    "example": "uid-be9dcf57-ad65-40e0-a3f8-d1c75974bf01"
+                  },
+                  "ownerType": {
+                    "type": "string",
+                    "example": "user"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mail/{domain}/mailboxes/{name}": {
+      "get": {
+        "summary": "Get Mailbox",
+        "description": "Get mailbox information.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          },
+          {
+            "$ref": "#/components/parameters/MailboxName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mailbox"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update Mailbox",
+        "description": "Update mailbox.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          },
+          {
+            "$ref": "#/components/parameters/MailboxName"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Mailbox",
+        "description": "Delete mailbox.",
+        "tags": [
+          "Mail"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DomainName"
+          },
+          {
+            "$ref": "#/components/parameters/MailboxName"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "deleteMails": {
+                    "type": "boolean",
+                    "description": "Also delete emails in mailbox.",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://my.example.com/api/v1"
+    }
+  ],
+  "components": {
+    "parameters": {
+      "DomainName": {
+        "in": "path",
+        "name": "domain",
+        "description": "Domain",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "MailboxName": {
+        "in": "path",
+        "name": "name",
+        "description": "Mailbox",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "PaginationPage": {
+        "in": "query",
+        "name": "page",
+        "schema": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "PaginationPerPage": {
+        "in": "query",
+        "name": "per_page",
+        "schema": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "default": 25
+        }
+      },
+      "TaskId": {
+        "in": "path",
+        "name": "taskId",
+        "description": "Task ID",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "UserId": {
+        "in": "path",
+        "name": "userId",
+        "description": "User ID",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "GroupId": {
+        "in": "path",
+        "name": "groupId",
+        "description": "Group ID",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ServiceName": {
+        "in": "path",
+        "name": "service",
+        "description": "Service Name",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "mail",
+            "mongodb",
+            "mysql",
+            "postgresql",
+            "docker",
+            "unbound",
+            "sftp",
+            "graphite",
+            "nginx"
+          ]
+        }
+      }
+    },
+    "requestBodies": {
+      "UpdatePattern": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdatePattern"
+            }
+          }
+        }
+      },
+      "DynamicDnsConfig": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "enabled"
+              ],
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "example": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "Group": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Manager"
+                }
+              }
+            }
+          }
+        }
+      },
+      "EnableMailboxes": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "enabled"
+              ],
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Mailbox": {
+        "description": "Mailbox",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "webmaster"
+          },
+          "domain": {
+            "type": "string",
+            "example": "example.com"
+          },
+          "ownerId": {
+            "type": "string",
+            "example": "uid-be9dcf57-ad65-40e0-a3f8-d1c75974bf01"
+          },
+          "ownerType": {
+            "type": "string",
+            "example": "user"
+          },
+          "aliases": {
+            "type": "array",
+            "example": "[{ name, domain }]",
+            "items": {}
+          }
+        }
+      },
+      "Domain": {
+        "description": "Domain Info",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "example": "example.com"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "mailFromValidation": {
+            "type": "boolean",
+            "example": true
+          },
+          "catchAll": {
+            "type": "array",
+            "example": [],
+            "items": {}
+          },
+          "relay": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "$ref": "#/components/schemas/MailRelayProvider"
+              }
+            }
+          },
+          "banner": {
+            "type": "object",
+            "description": "Text and HTML mail signature",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "html": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "UserId": {
+        "description": "User ID",
+        "type": "string",
+        "example": "uid-5d06e9da-8e4a-4184-b63c-c25487e1c70b"
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "gid-e08ca116-d3e5-43c9-b43f-6eb990be58ea"
+          },
+          "name": {
+            "type": "string",
+            "example": "Manager"
+          }
+        }
+      },
+      "GroupWithMembers": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "gid-e08ca116-d3e5-43c9-b43f-6eb990be58ea"
+          },
+          "name": {
+            "type": "string",
+            "example": "Manager"
+          },
+          "userIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "example": [
+              "uid-e08ca116-d3e5-43c9-b43f-6eb990be58ea"
+            ]
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "fallbackEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "groupIds": {
+            "type": "array",
+            "example": [],
+            "items": {}
+          },
+          "admin": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "description": "A value of `ldap` indicates, this user if from an LDAP/ActiveDirectory user, otherwise a local user",
+            "enum": [
+              "",
+              "ldap"
+            ]
+          }
+        }
+      },
+      "RestrictedUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Provider": {
+        "type": "string",
+        "description": "VPS provider name tag",
+        "enum": [
+          "ami",
+          "azure",
+          "cloudscale",
+          "contabo",
+          "digitalocean",
+          "ec2",
+          "exoscale",
+          "galaxygate",
+          "gce",
+          "hetzner",
+          "interox",
+          "lightsail",
+          "linode",
+          "netcup",
+          "ovh",
+          "rosehosting",
+          "scaleway",
+          "skysilk",
+          "time4vps",
+          "upcloud",
+          "vultr",
+          "generic"
+        ],
+        "example": "linode"
+      },
+      "MailRelayProvider": {
+        "type": "string",
+        "description": "Mail SMTP relay provider",
+        "enum": [
+          "cloudron-smtp",
+          "external-smtp",
+          "external-smtp-noauth",
+          "ses-smtp",
+          "elasticemail-smtp",
+          "google-smtp",
+          "mailgun-smtp",
+          "mailjet-smtp",
+          "postmark-smtp",
+          "sendgrid-smtp",
+          "sparkpost-smtp",
+          "noop"
+        ],
+        "example": "postmark-smtp"
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "mysql",
+            "enum": [
+              "mail",
+              "mongodb",
+              "mysql",
+              "postgresql",
+              "docker",
+              "unbound",
+              "sftp",
+              "graphite",
+              "nginx"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "active",
+            "enum": [
+              "starting",
+              "active",
+              "stopped"
+            ]
+          },
+          "memoryUsed": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "memoryPercent": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "error": {
+            "type": "string",
+            "example": "",
+            "nullable": true
+          },
+          "config": {
+            "type": "object",
+            "description": "If `memory` and `memorySwap` is not set, then they cannot be configured",
+            "properties": {
+              "memory": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              },
+              "memorySwap": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      },
+      "TaskType": {
+        "type": "string",
+        "example": "update",
+        "enum": [
+          "app",
+          "backup",
+          "update",
+          "renewcerts",
+          "prepareDashboardDomain",
+          "cleanBackups",
+          "syncExternalLdap"
+        ]
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TaskType"
+          },
+          "percent": {
+            "type": "integer",
+            "example": 33,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "message": {
+            "type": "string",
+            "description": "For display purpose to show more informed progress"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string",
+                "example": "crashed",
+                "enum": [
+                  "stopped",
+                  "crashed",
+                  "timeout"
+                ]
+              }
+            }
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Determines if this task is currently active. Progress can be tracked with `message` and `percent`",
+            "example": true
+          },
+          "creationTime": {
+            "type": "integer",
+            "description": "Creation time UTC timestamp"
+          },
+          "result": {
+            "type": "object"
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Last modified UTC timestamp"
+          },
+          "success": {
+            "type": "boolean",
+            "example": true,
+            "description": "Determines if the task was successful. If `false` check `error` or `active` properties."
+          }
+        }
+      },
+      "AddonConfig": {
+        "type": "object",
+        "properties": {
+          "memory": {
+            "type": "integer",
+            "example": 268435456,
+            "description": "Memory limit in bytes. Example is 256MB"
+          },
+          "memorySwap": {
+            "type": "integer",
+            "example": 536870912,
+            "description": "Swap memory limit in bytes. Example is 512MB"
+          }
+        }
+      },
+      "DnsProvider": {
+        "type": "string",
+        "example": "digitalocean",
+        "enum": [
+          "route53",
+          "cloudflare",
+          "digitalocean",
+          "gandi",
+          "godaddy",
+          "gcdns",
+          "linode",
+          "namecom",
+          "namecheap",
+          "wildcard",
+          "manual",
+          "noop"
+        ]
+      },
+      "TlsConfig": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "example": "letsencrypt-prod",
+            "enum": [
+              "letsencrypt-prod",
+              "letsencrypt-staging",
+              "fallback"
+            ]
+          },
+          "wildcard": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "SysConfig": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "Currently the sysinfo provider is only used to determine the public IP of the server. Which in turn is used in the DNS logic to setup records.",
+            "enum": [
+              "fixed",
+              "network-interface",
+              "generic"
+            ],
+            "example": "generic"
+          }
+        }
+      },
+      "DomainConfig": {
+        "type": "object",
+        "required": [
+          "provider",
+          "config"
+        ],
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/DnsProvider"
+          },
+          "config": {
+            "description": "Provider specific config. May include username and api tokens",
+            "type": "object"
+          },
+          "hyphenatedSubdomains": {
+            "type": "boolean"
+          },
+          "wildcard": {
+            "type": "boolean"
+          },
+          "zoneName": {
+            "type": "string"
+          },
+          "fallbackCertificate": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "example": ""
+              },
+              "cert": {
+                "type": "string",
+                "example": ""
+              }
+            }
+          },
+          "tlsConfig": {
+            "$ref": "#/components/schemas/TlsConfig"
+          }
+        }
+      },
+      "AppManifest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "App": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "2b97b864-37b6-4e79-88b0-63712186a326"
+          },
+          "appStoreId": {
+            "type": "string",
+            "example": "org.wordpress.cloudronapp"
+          },
+          "installationState": {
+            "type": "string",
+            "example": "installed"
+          },
+          "error": {
+            "type": "object",
+            "example": null
+          },
+          "runState": {
+            "type": "string",
+            "example": "running"
+          },
+          "health": {
+            "type": "string",
+            "example": "healthy"
+          },
+          "taskId": {
+            "type": "string",
+            "example": "1234",
+            "nullable": true
+          },
+          "location": {
+            "type": "string",
+            "description": "This is the subdomain, the app is installed on. May be an empty string if no subdomain is configured",
+            "example": "www"
+          },
+          "domain": {
+            "type": "string",
+            "example": "example.com"
+          },
+          "fqdn": {
+            "type": "string",
+            "description": "FullQualifiedDomainName is essentially `location`.`domain`",
+            "example": "www.example.com"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/AppManifest"
+          },
+          "portBindings": {
+            "type": "object"
+          },
+          "iconUrl": {
+            "type": "string",
+            "example": "/api/v1/apps/2b97b864-37b6-4e79-88b0-63712186a326/icon"
+          },
+          "creationTime": {
+            "type": "string",
+            "description": "Time the app was installed",
+            "format": "date-time",
+            "example": "ISO-8601 UTC date"
+          },
+          "ts": {
+            "type": "string",
+            "description": "Time the app was last modified",
+            "format": "date-time",
+            "example": "ISO-8601 UTC date"
+          },
+          "tags": {
+            "type": "array",
+            "items": {}
+          },
+          "label": {
+            "type": "string",
+            "example": "MyGreatWebsite",
+            "nullable": true
+          }
+        }
+      },
+      "BackupFormat": {
+        "type": "string",
+        "example": "rsync",
+        "enum": [
+          "rsync",
+          "targz"
+        ]
+      },
+      "BackupConfig": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "example": "s3",
+            "enum": [
+              "s3",
+              "gcs",
+              "filesystem",
+              "minio",
+              "s3-v4-compat",
+              "digitalocean-spaces",
+              "exoscale-sos",
+              "wasabi",
+              "scaleway-objectstorage",
+              "noop"
+            ]
+          },
+          "format": {
+            "$ref": "#/components/schemas/BackupFormat"
+          },
+          "retentionSecs": {
+            "type": "integer",
+            "description": "Maximum time to keep backups in seconds (1 week is 604800 seconds)",
+            "example": 604800
+          },
+          "intervalSecs": {
+            "type": "integer",
+            "description": "Interval for automatic backups in seconds. Must be atleast 6 hours (21600 seconds)",
+            "example": 1,
+            "minimum": 21600
+          },
+          "key": {
+            "type": "string",
+            "description": "Encyrption key. May contain a placeholder string to not leak the key"
+          },
+          "syncConcurrency": {
+            "type": "integer",
+            "example": 5,
+            "minimum": 1
+          },
+          "acceptSelfSignedCerts": {
+            "type": "boolean",
+            "example": false
+          },
+          "backupFolder": {
+            "type": "string",
+            "description": "only for filesystem provider"
+          },
+          "noHardlinks": {
+            "type": "boolean",
+            "description": "only for filesystem provider"
+          },
+          "externalDisk": {
+            "type": "boolean",
+            "description": "only for filesystem provider"
+          },
+          "accessKeyId": {
+            "type": "string",
+            "description": "only for S3 style provider"
+          },
+          "secretAccessKey": {
+            "type": "string",
+            "description": "only for S3 style provider"
+          },
+          "signatureVersion": {
+            "type": "string",
+            "description": "only for S3 style provider"
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "only for S3 style provider"
+          },
+          "region": {
+            "type": "string",
+            "description": "only for S3 style provider"
+          },
+          "bucket": {
+            "type": "string",
+            "description": "only for S3 and gcs style provider"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "only for S3 and gcs style provider"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "only for gcs provider"
+          },
+          "credentials": {
+            "type": "object",
+            "description": "only for gcs provider",
+            "properties": {
+              "client_email": {
+                "type": "string"
+              },
+              "private_key": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "PlatformConfig": {
+        "type": "object",
+        "properties": {
+          "mysql": {
+            "$ref": "#/components/schemas/AddonConfig"
+          },
+          "postgresql": {
+            "$ref": "#/components/schemas/AddonConfig"
+          },
+          "mail": {
+            "$ref": "#/components/schemas/AddonConfig"
+          },
+          "mongodb": {
+            "$ref": "#/components/schemas/AddonConfig"
+          }
+        }
+      },
+      "ExternalLdapConfig": {
+        "type": "object",
+        "required": [
+          "provider",
+          "url",
+          "baseDn",
+          "filter"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "ad",
+              "jumpcloud",
+              "okta",
+              "other",
+              "noop"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "url"
+          },
+          "baseDn": {
+            "type": "string"
+          },
+          "filter": {
+            "type": "string"
+          },
+          "usernameField": {
+            "type": "string",
+            "default": "uid"
+          },
+          "bindDn": {
+            "type": "string"
+          },
+          "bindPassword": {
+            "type": "string"
+          },
+          "autoCreate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RegistryConfig": {
+        "type": "object",
+        "required": [
+          "serverAddress"
+        ],
+        "properties": {
+          "serverAddress": {
+            "type": "string",
+            "format": "url"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "SysinfoConfig": {
+        "type": "object",
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "default": "generic",
+            "enum": [
+              "generic",
+              "fixed",
+              "network-interface"
+            ]
+          },
+          "ip": {
+            "type": "string",
+            "description": "Only applies to the `fixed` provider",
+            "example": "123.123.123.123"
+          },
+          "ifname": {
+            "type": "string",
+            "description": "Only applies to the `network-interface` provider",
+            "example": "eth0"
+          }
+        }
+      },
+      "UpdatePattern": {
+        "type": "object",
+        "required": [
+          "pattern"
+        ],
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "example": "0 030 4 1,15 * 5",
+            "description": "The format listed in the [node-cron](https://github.com/ncb000gt/node-cron#cron-ranges) page. Note that unlike classic crontab format, the pattern contains seconds as the first part. Setting pattern to `never` disables auto update. Some examples of patterns are\n* `00 00 1,3,5,23 * * *` would run updates at 1am, 3am, 5am, 11pm every night.\n* `0 030 4 1,15 * 5` would run updates at 4:30 am on the 1st and 15th of each month, plus every Friday."
+          }
+        }
+      },
+      "TimezoneConfig": {
+        "type": "object",
+        "required": [
+          "timeZone"
+        ],
+        "properties": {
+          "timeZone": {
+            "type": "string",
+            "default": "America/Los_Angeles",
+            "description": "Timezone is automatically set based on the IP address from where the Cloudron was activated. This timezone is used with the auto update pattern to trigger updates at the correct time. See the [Tz database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for a list of valid values."
+          }
+        }
+      },
+      "CloudronNameConfig": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "Cloudron"
+          }
+        }
+      }
+    }
+  }
+}
